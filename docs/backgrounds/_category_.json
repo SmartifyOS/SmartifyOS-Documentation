@@ -1,0 +1,8 @@
+{
+  "label": "Backgrounds",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "SmartifyOsApp draws everything else (the status bar, home widgets, windows) on top of a background you choose, so it's a required piece of setup. Pick one of the options below."
+  }
+}

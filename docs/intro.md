@@ -2,39 +2,35 @@
 sidebar_position: 1
 ---
 
-# Welcome to SmartifyOS
+# Getting Started
 
-Let's make your old car as modern as any new car!.
+SmartifyOS is an open source infotainment system for your car, built with Flutter. You build
+your own car app on top of the `smartify_os_core` package: register your settings pages, app
+list entries, home screen widgets, status bar icons, quick settings tiles and a theme, then
+`smartify_os_core` takes care of the shell around them (boot screen, status bar, notification
+shade, Bluetooth, sound).
 
-## Getting Started
+## Installing
 
-### For contribution
+The `smartify-os` CLI handles project setup, building and deploying for you, you never have to
+touch Flutter, git or adb directly.
 
-If you want to contribute to this project by for example fixing a bug or adding a feature install it like this:
+macOS and Linux:
 
-1. Install the [Unity Editor](https://unity.com/)
-2. Go to the repository’s GitHub page and click the “Fork” button to create a copy of the repository in your own GitHub account.
-3. Clone your new repo
-   ```
-   git clone https://github.com/your-username/SmartifyOS.git
-   ```
-4. Cd into its directory
-   ```
-   cd SmartifyOS
-   ```
-5. Add the Main Repository as a Remote 
-   ```
-   git remote add upstream https://github.com/Mauznemo/SmartifyOS.git
-   ```
-6. Open Unity Hub, click `Add` and select the path of the repo you just cloned
+```bash
+curl -fsSL https://smartify-os.com/install.sh | bash
+```
 
-### For personal project:
+Windows:
 
-If you only want to add your own personal features (that are specific to your project) you can do it like this:
+```powershell
+irm https://smartify-os.com/install.ps1 | iex
+```
 
-1. Install the [Unity Editor](https://unity.com/)
-2. Clone the repo
-   ```
-   git clone https://github.com/Mauznemo/SmartifyOS.git
-   ```
-3. Open Unity Hub, click `Add` and select the path of the repo you just cloned
+:::tip[Tip]
+
+Run `smartify-os` with no arguments to see everything it can do.
+
+:::
+
+TODO: how to create a new project with the CLI, once that command exists.

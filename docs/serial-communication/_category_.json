@@ -1,8 +1,0 @@
-{
-  "label": "Serial Communication",
-  "position": 2,
-  "link": {
-    "type": "generated-index",
-    "description": "How to communicate with serial devices."
-  }
-}

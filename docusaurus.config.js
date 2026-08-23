@@ -24,7 +24,12 @@ const config = {
     projectName: "SmartifyOS-Documentation", // Usually your repo name.
 
     onBrokenLinks: "throw",
-    onBrokenMarkdownLinks: "warn",
+
+    markdown: {
+        hooks: {
+            onBrokenMarkdownLinks: "warn",
+        },
+    },
 
     // Even if you don't use internationalization, you can use this field to set
     // useful metadata like html lang. For example, if your site is Chinese, you
@@ -120,7 +125,7 @@ const config = {
             prism: {
                 theme: prismThemes.github,
                 darkTheme: prismThemes.dracula,
-                additionalLanguages: ["csharp"],
+                additionalLanguages: ["dart", "bash", "powershell"],
             },
         }),
 };
