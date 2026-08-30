@@ -178,5 +178,60 @@ Feed it the same way as before, `SmartifyOsGps.reportFix`/`.reportNmea` still wo
 UI knows in advance that only the speed will ever show up, and doesn't offer to draw a map that
 will never have anywhere to point at.
 
-TODO: a full guide on writing a `GpsBackend` from scratch, for a source that doesn't fit the
-"hand over readings" shape at all.
+### Writing one from scratch
+
+For a source that doesn't fit the "hand over readings" shape at all, one with its own polling
+loop or its own permission dance to do first, implement `GpsBackend` directly instead of
+extending `ManualGpsBackend`:
+
+```dart
+class MyCanBusGpsBackend implements GpsBackend {
+  final _fixes = StreamController<GpsFix?>.broadcast();
+  final _capabilities = StreamController<GpsCapabilities>.broadcast();
+  GpsFix? _fix;
+  GpsCapabilities _caps = GpsCapabilities.none;
+  StreamSubscription<CanBusReading>? _sub;
+
+  @override
+  GpsFix? get fix => _fix;
+  @override
+  Stream<GpsFix?> get fixChanges => _fixes.stream;
+
+  @override
+  GpsCapabilities get capabilities => _caps;
+  @override
+  Stream<GpsCapabilities> get capabilityChanges => _capabilities.stream;
+
+  @override
+  Future<void> start(GpsConfig config) async {
+    _caps = const GpsCapabilities({GpsCapability.speed});
+    _capabilities.add(_caps);
+    _sub = myCanBus.readings.listen((reading) {
+      _fix = GpsFix(speed: reading.speedMetersPerSecond);
+      _fixes.add(_fix);
+    });
+  }
+
+  @override
+  Future<void> stop() async {
+    await _sub?.cancel();
+    await _fixes.close();
+    await _capabilities.close();
+  }
+}
+```
+
+Pass it the same way as any other backend:
+
+```dart
+await SmartifyOs().init(
+  gps: GpsConfig(backend: MyCanBusGpsBackend.new),
+);
+```
+
+A plain broadcast `StreamController` is all you need, `fixChanges` and `capabilityChanges` only
+ever get one listener (`SmartifyOsGps` itself, right after `start` returns), so there's no late
+listener to catch up. Throw a `GpsException` from `start` for anything that stops the GPS from
+coming up at all (no permission, no hardware found), that's what ends up on
+`SmartifyOsGps.lastError`. Only override `errors` (it defaults to an empty stream) if your source
+can fail again after `start` has already returned, a receiver switched off mid-drive, say.
