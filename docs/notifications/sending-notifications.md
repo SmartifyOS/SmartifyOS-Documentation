@@ -76,6 +76,19 @@ SmartifyOsNotifications.isShadeOpen;
 
 None of these throw, an id that isn't waiting is logged and worked around.
 
+Pulling the shade down a second time gives the quick settings the whole panel instead of the strip
+at the top, which is what a swipe further up on an already-open shade does:
+
+```dart
+SmartifyOsNotifications.expandShade();
+SmartifyOsNotifications.collapseShade(); // back to the strip, shade stays down
+SmartifyOsNotifications.isShadeExpanded;
+```
+
+`expandShade` does nothing on a shade that isn't down yet, there's nothing there to expand.
+`closeShade` always comes back collapsed, so pulling the shade down means the same thing every
+time.
+
 ## Configuring sounds and defaults
 
 `NotificationsConfig`, passed to `SmartifyOs.init`, controls how many notifications the shade

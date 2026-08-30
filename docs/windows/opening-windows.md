@@ -46,6 +46,28 @@ ElevatedButton(
 
 That's it, `SmartifyOsNavigator` is only for opening windows, closing one is always plain Flutter.
 
+## Going back and home
+
+`SmartifyOsNavigator.canGoBack` says whether there's a window open over the home screen, useful for
+telling the two apart without keeping track of it yourself:
+
+```dart
+if (!SmartifyOsNavigator.canGoBack) {
+  // on the home screen
+}
+```
+
+`back()` and `goHome()` are what a physical back or home button should call, see
+[Using Focus](../focus/using-focus.md) if you're wiring one up. `back()` goes back one step: it
+lets go of a slider being changed first, then honours a window's own steps (Settings walking back
+through its pages, for example), and only then closes the window. `goHome()` closes every window at
+once, straight back to the home screen. Both return `false` when there was nothing to do.
+
+```dart
+SmartifyOsNavigator.back();
+SmartifyOsNavigator.goHome();
+```
+
 ## Making a window reachable
 
 Most windows should show up in the app list so the user can actually get to them, see

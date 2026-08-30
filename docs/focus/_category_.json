@@ -1,0 +1,8 @@
+{
+  "label": "Physical Controls",
+  "position": 17,
+  "link": {
+    "type": "generated-index",
+    "description": "Driving the UI without the touchscreen: a rotary knob, a touchpad, buttons, whatever your car has."
+  }
+}

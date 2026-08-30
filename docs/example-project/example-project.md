@@ -22,6 +22,10 @@ Future<void> main() async {
     quickSettings: QuickSettingsConfig(tiles: miataQuickSettingsTiles),
   );
 
+  // The knob on the centre console and the two buttons next to it. What each
+  // of them does is entirely this car's own business, see input.dart.
+  startMiataInput();
+
   // Pages and rows can also be added later, from anywhere. They show up
   // right away, even while Settings is open.
   registerMiataSettingsEntries();
@@ -54,6 +58,7 @@ own car:
 | `status_icons.dart`       | Extra status bar icons                                                  |
 | `quick_settings.dart`     | A "Popups" toggle for the pop-up headlights                            |
 | `theme.dart`               | Six alternate themes to try, swap the one passed to `SmartifyOsApp`    |
+| `input.dart`               | The rotary knob and two buttons on the centre console, see [Using Focus](../focus/using-focus.md) |
 | `windows/`                 | A minimal fullscreen window, a floating window, and a debug window with buttons for every notification variant |
 
 ## Test windows
