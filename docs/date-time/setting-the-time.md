@@ -44,11 +44,12 @@ time settings page is remembered and wins over this from then on.
 
 ## Setting the time
 
-If your car has something that knows the exact time, like a GPS module, hand it over whenever it
-reports a fix:
+If you've set up [GPS](../gps/using-gps.md), this already happens on its own, `GpsConfig.setClock`
+(on by default) sets the clock from the satellites the moment a reading carries a time. You only
+need to call this yourself if the car has some other source that knows the exact time:
 
 ```dart
-myGps.fixes.listen((fix) => SmartifyOsTime.setTime(fix.utcTime));
+mySource.times.listen(SmartifyOsTime.setTime);
 ```
 
 Give `setTime` whatever your source hands you, in UTC or local, either is converted correctly. On

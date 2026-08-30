@@ -51,15 +51,35 @@ and a steering wheel:
 | **rollingWheels**           | Optional, every wheel that should spin while driving, `WheelConfig(objectName: ...)` for each, `invertSpin: true` if one spins the wrong way |
 | **steerableWheels**         | Optional, the front wheels' steering parts, `SteerableWheelConfig(holderObjectName: ...)` for each |
 | **steeringWheel**           | Optional, the interior steering wheel, `SteeringWheelConfig(objectName: ...)` |
+| **wheelCircumference**      | Optional, defaults to `1.9`. How far the car travels in one full turn of a wheel, in metres, this is what turns a GPS speed into a wheel spin. Multiply the tyre's diameter by pi, a 195/50R15 is about 0.59 m across, so 1.86 |
+| **spinFromSpeed**           | Optional, defaults to `true`. Spin the wheels at whatever speed [`SmartifyOsGps`](../gps/using-gps.md) reports for the car. Turn it off to drive the wheel spin yourself |
 
 Leave any of them out and SmartifyOS simply doesn't animate that part.
 
-Once it's running, drive the rig from anywhere in your own code:
+```dart
+CarOrbitBackground(
+  modelPath: 'assets/miata_model.glb',
+  config: const CarSceneConfig(
+    rollingWheels: [...],
+    wheelCircumference: 1.86, // 195/50R15
+  ),
+)
+```
+
+With `spinFromSpeed` on (the default), the wheels already turn as fast as the real thing would on
+the road, no extra code needed, as soon as you've set up [GPS](../gps/using-gps.md). Once it's
+running, drive the rest of the rig from anywhere in your own code:
 
 ```dart
-CarAnimationController.instance.speed = 180;      // degrees/s wheel spin
 CarAnimationController.instance.steerAngle = 25;  // degrees
 CarAnimationController.instance.rotateY('Door_FL', 45); // rotate any named part
+```
+
+Turn `spinFromSpeed` off if you want to drive the wheel spin yourself instead:
+
+```dart
+CarAnimationController.instance.speedMetersPerSecond = 22.8; // uses wheelCircumference
+CarAnimationController.instance.speed = 180;                 // or set the raw degrees/s directly
 ```
 
 TODO: a full guide on preparing and rigging a `.glb` model for `CarOrbitBackground`.
