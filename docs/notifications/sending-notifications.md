@@ -42,9 +42,78 @@ SmartifyOsNotifications.dismissNotification('doors');
 | **keep**            | Optional, whether it stays around as a status bar icon and shade row after showing, defaults to `true`, set to `false` for something like "Saved" that only matters in the moment |
 | **showFor**         | Optional, how long it sits on screen when it arrives, defaults to five seconds, pass `Duration.zero` to skip the popup and go straight into the shade |
 | **onTap**           | Optional, runs when tapped on the popup or its row in the shade           |
+| **actions**         | Optional, up to three `NotificationAction` buttons shown on the popup and its row in the shade |
+| **ongoing**         | Optional, whether this stands for something still running rather than something that happened, defaults to `false`, see [Ongoing notifications](#ongoing-notifications) |
+| **showInStatusBar** | Optional, whether its icon shows in the status bar while it's in the shade, defaults to `true`, set to `false` for one that should only be in the shade |
 
 Use this for anything worth coming back to. Something the driver can safely miss and that isn't
 worth keeping is a `ThemedToast`, something that needs an answer is a `ThemedDialog`.
+
+## Adding buttons
+
+Give a notification up to three `NotificationAction`s through `actions`, for something the driver
+can do about it right there without opening anything first:
+
+```dart
+SmartifyOsNotifications.showNotification(
+  SmartifyOsNotification(
+    title: 'Missed call from Anna',
+    actions: [
+      NotificationAction(
+        label: 'Call back',
+        icon: const Icon(Icons.call),
+        onTap: (context) => Phone.call('Anna'),
+      ),
+    ],
+  ),
+);
+```
+
+| Parameters      |                                                                            |
+| ------------------- | -------------------------------------------------------------------------- |
+| **label**           | The word on the button, for example `'Stop'`, keep it to one or two words |
+| **onTap**           | Runs when the driver taps the button                                      |
+| **icon**            | Optional, an icon in front of `label`                                     |
+
+Tapping a button does what tapping the notification itself does: it puts the shade away and takes
+the notification out of the list, unless it's `ongoing`.
+
+## Ongoing notifications
+
+Something that keeps running in the background after its window is closed, Android Auto or a
+dashcam recording, sets `ongoing: true` instead of relying on `keep`:
+
+```dart
+SmartifyOsNotifications.showNotification(
+  SmartifyOsNotification(
+    id: 'android_auto',
+    title: 'Android Auto is running',
+    icon: const Icon(Icons.directions_car),
+    ongoing: true,
+    onTap: (context) => SmartifyOsNavigator.push(context, const AndroidAutoWindow()),
+    actions: [
+      NotificationAction(label: 'Stop', onTap: (context) => AndroidAuto.stop()),
+    ],
+  ),
+);
+
+// Once it has stopped, from wherever it stopped:
+SmartifyOsNotifications.dismissNotification('android_auto');
+```
+
+An ongoing notification:
+
+- doesn't pop up when it arrives (give it a `showFor` if it should),
+- sits above the others in the shade,
+- can't be swiped away and stays when "Clear all" is pressed, so only `dismissNotification` takes
+  it away,
+- stays when tapped, since tapping it is how the driver gets back to it,
+- shows its icon at the right end of the status bar, with the other icons for how the car is right
+  now, rather than next to the clock,
+- is always kept, whatever `keep` says.
+
+Showing it again with the same `id` updates it where it is, so you can change its text while it
+runs without it jumping to the top or losing its place.
 
 ## Do not disturb
 
@@ -67,12 +136,15 @@ To silence notification sounds for good instead, without a switch at all, use
 ```dart
 SmartifyOsNotifications.clearNotifications();
 SmartifyOsNotifications.hasNotification('doors');
-SmartifyOsNotifications.notifications; // newest first
+SmartifyOsNotifications.notifications; // ongoing first, then the rest, each newest first
 SmartifyOsNotifications.openShade();
 SmartifyOsNotifications.closeShade();
 SmartifyOsNotifications.toggleShade();
 SmartifyOsNotifications.isShadeOpen;
 ```
+
+`clearNotifications` leaves the `ongoing` ones in place, since they stand for something still
+running and aren't the driver's to clear.
 
 None of these throw, an id that isn't waiting is logged and worked around.
 
@@ -93,7 +165,7 @@ time.
 
 `NotificationsConfig`, passed to `SmartifyOs.init`, controls how many notifications the shade
 keeps, how long they sit on screen by default, and which sound asset each `NotificationSound`
-plays:
+plays. `ongoing` notifications never drop off and don't count towards the limit:
 
 ```dart
 await SmartifyOs().init(

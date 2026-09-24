@@ -56,8 +56,11 @@ current list with `SmartifyOsStatusBar.icons`.
 
 ## Hiding built-in icons
 
-`StatusIcons` names the icons SmartifyOS ships with: `clock`, `notifications`, `doNotDisturb`
-and `bluetooth`. Leave one out at startup with `StatusBarConfig.hiddenIcons`:
+`StatusIcons` names the icons SmartifyOS ships with: `clock`, `notifications`,
+`ongoingNotifications`, `doNotDisturb` and `bluetooth`. `notifications` is the ordinary
+notifications next to the clock, `ongoingNotifications` is the `ongoing` ones (see
+[Ongoing notifications](../notifications/sending-notifications.md#ongoing-notifications)) at the
+other end of the bar. Leave one out at startup with `StatusBarConfig.hiddenIcons`:
 
 ```dart
 await SmartifyOs().init(
