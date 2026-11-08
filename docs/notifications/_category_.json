@@ -1,8 +1,8 @@
 {
   "label": "Notifications",
-  "position": 10,
+  "position": 14,
   "link": {
     "type": "generated-index",
-    "description": "Notifications"
+    "description": "Telling the driver that something happened, with a popup, a sound and a row in the shade to come back to."
   }
 }

@@ -1,8 +1,8 @@
 {
   "label": "Shell",
-  "position": 14,
+  "position": 31,
   "link": {
     "type": "generated-index",
-    "description": "Shell"
+    "description": "Running Linux programs on the car from your own code."
   }
 }

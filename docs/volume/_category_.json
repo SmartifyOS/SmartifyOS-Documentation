@@ -1,8 +1,8 @@
 {
   "label": "Volume",
-  "position": 16,
+  "position": 20,
   "link": {
     "type": "generated-index",
-    "description": "Volume"
+    "description": "How loud the car is: reading it, turning it from a knob, and turning the music down while the car speaks."
   }
 }

@@ -1,8 +1,8 @@
 {
   "label": "Home Widgets",
-  "position": 7,
+  "position": 11,
   "link": {
     "type": "generated-index",
-    "description": "Home Widgets"
+    "description": "Cards that turn up when they have something to say, and widgets that are always there, on the home screen around the car."
   }
 }

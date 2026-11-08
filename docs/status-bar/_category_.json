@@ -1,8 +1,8 @@
 {
   "label": "Status Bar",
-  "position": 8,
+  "position": 12,
   "link": {
     "type": "generated-index",
-    "description": "Status Bar"
+    "description": "Small icons along the top of the screen that say how the car is right now."
   }
 }

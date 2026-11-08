@@ -1,8 +1,8 @@
 {
-  "label": "Theme",
-  "position": 3,
+  "label": "Themes",
+  "position": 7,
   "link": {
     "type": "generated-index",
-    "description": "Theme"
+    "description": "A theme decides how everything looks: colours, fonts, glass or solid panels, and the shape of every corner."
   }
 }

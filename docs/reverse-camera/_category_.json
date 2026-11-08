@@ -1,0 +1,8 @@
+{
+  "label": "Reverse Camera",
+  "position": 25,
+  "link": {
+    "type": "generated-index",
+    "description": "A USB reverse camera that fills the screen while the car is in reverse, with guide lines that bend with the steering."
+  }
+}

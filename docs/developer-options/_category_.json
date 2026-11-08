@@ -1,0 +1,8 @@
+{
+  "label": "Developer Options",
+  "position": 32,
+  "link": {
+    "type": "generated-index",
+    "description": "The hidden settings page for testing and building: faking where the car is, watching the CAN bus, talking to boards by hand."
+  }
+}

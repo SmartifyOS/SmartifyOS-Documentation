@@ -1,0 +1,8 @@
+{
+  "label": "Boards on USB",
+  "position": 27,
+  "link": {
+    "type": "generated-index",
+    "description": "An Arduino or ESP32 plugged straight into the car's computer by its USB cable, the simple way for a car with only one or two boards."
+  }
+}

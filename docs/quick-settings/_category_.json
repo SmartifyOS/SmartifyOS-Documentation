@@ -1,8 +1,8 @@
 {
   "label": "Quick Settings",
-  "position": 9,
+  "position": 13,
   "link": {
     "type": "generated-index",
-    "description": "Quick Settings"
+    "description": "Switches and buttons at the top of the shade, for what the driver reaches for while driving."
   }
 }

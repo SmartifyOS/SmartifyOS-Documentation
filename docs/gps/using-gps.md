@@ -4,92 +4,81 @@ sidebar_position: 1
 
 # Using GPS
 
-`SmartifyOsGps` is where the car's position and speed come from. It's what feeds the speed shown
-on the built-in display and the wheel spin on [Car Orbit Background](../backgrounds/car-orbit-background.md),
-and it's there for your own widgets too.
+`SmartifyOsGps` is where SmartifyOS gets the car's position and speed. The speed on the info
+display and the rolling wheels of the [car on screen](../car/showing-the-car.md) both come from
+here, it sets the clock from the satellites, and extensions like Android Auto read it too. Your own
+widgets can use it as well.
 
-On an Android tablet this needs no setup at all, SmartifyOS asks for the location permission and
-uses the tablet's own receiver. On anything else (a car running Linux, most real setups), there's
-no receiver of its own, so you hand readings over yourself, from a GPS module on a serial port,
-from the car's own bus, from anywhere:
+Where the readings come from depends on what the car runs on:
+
+- **An Android tablet** needs nothing at all. SmartifyOS asks for the location permission and uses
+  the tablet's own receiver.
+- **Everything else** (a car running Linux, so most real setups) has no receiver of its own. You
+  hand the readings over yourself, from a GPS module, from the CAN bus, from anywhere.
+
+A GPS module on a USB cable is the usual case. Most of them print NMEA, the standard text format
+GPS modules speak, one line at a time, and SmartifyOS reads that for you. Set the module up as a
+board (see [Adding a Board](../usb-boards/adding-a-board.md)) and pipe its lines straight in:
 
 ```dart
-await SmartifyOs().init(gps: const GpsConfig());
-
-// then, whenever a reading comes in:
-SmartifyOsGps.reportFix(speedKmh: 82);
-mySerialPort.lines.listen(SmartifyOsGps.reportNmea);
+SmartifyOsSerial.lines(gpsModule).listen(SmartifyOsGps.reportNmea);
 ```
 
-**None of the `SmartifyOsGps` methods throw.** A receiver that's unplugged mid drive, a permission
-the driver said no to, a damaged line from a module, all of it is reported on `SmartifyOsGps.errors`
+If your source already knows the numbers, hand those over instead:
+
+```dart
+SmartifyOsGps.reportFix(speedKmh: 82);
+```
+
+Call either from `main` after `SmartifyOs().init`, or from wherever your readings arrive.
+`SmartifyOsGps` comes from `package:smartify_os_core/gps.dart`.
+
+**None of the `SmartifyOsGps` methods throw.** A receiver unplugged mid drive, a permission the
+driver said no to, a damaged line from a module, all of it is reported on `SmartifyOsGps.errors`
 instead, and the car carries on.
 
-## Startup config
+## Reporting a reading
 
-```dart
-await SmartifyOs().init(
-  gps: const GpsConfig(),
-);
-```
-
-| Parameters              |                                                                                                                                    |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **enabled**                  | Optional, defaults to `true`. Turn the whole thing off, nothing is started and no permission is asked for                        |
-| **accuracy**                 | Optional, defaults to `GpsAccuracy.best`. How hard the built-in Android receiver should work, `.low`/`.medium`/`.high`/`.best`. Ignored by a source you feed yourself |
-| **distanceFilter**           | Optional, defaults to `0`. How far the car has to move, in metres, before the built-in Android receiver reports again. Leave it at `0` for a live speed |
-| **requestPermission**        | Optional, defaults to `true`. Ask the driver for the location permission on the first run. Turn it off if your app already asks for it somewhere else |
-| **setClock**                 | Optional, defaults to `true`. Set the car's clock from the satellites whenever a reading carries a time, see below |
-| **fixTimeout**                | Optional, defaults to zero (never). How long the last reading stays good after the source goes quiet. Set it when your source can stop without saying so (a dongle unplugged, a long tunnel), so the display doesn't keep showing an old speed forever |
-| **backend**                  | Optional, replaces the whole GPS implementation, see [Custom backends](#custom-backends) below |
-
-Setting a time from the satellites is exact and needs no network, which is the only way a car
-parked in a garage for a month comes back with the right time. This happens on its own, you don't
-need to wire up [`SmartifyOsTime`](../date-time/setting-the-time.md) yourself.
-
-## Reporting a fix
-
-Report whatever you have and leave the rest out, anything you leave out keeps the value it
-already had, so reporting the position from one place and the speed from another is fine:
+Report whatever you have and leave the rest out. Anything you leave out keeps the value it already
+had, so the position can come from one place and the speed from another:
 
 ```dart
 SmartifyOsGps.reportFix(speedKmh: 82);
 SmartifyOsGps.reportFix(latitude: 48.137, longitude: 11.575);
 ```
 
-| Parameters      |                                                                    |
-| ------------------ | ------------------------------------------------------------------ |
-| **latitude**          | Optional, degrees north, between -90 and 90                       |
-| **longitude**         | Optional, degrees east, between -180 and 180                      |
-| **altitude**          | Optional, metres above sea level                                  |
-| **speed / speedKmh / speedMph**  | Optional, give it in whichever unit you have it in, one of the three |
-| **heading**           | Optional, degrees clockwise from true north                       |
-| **accuracy**          | Optional, how far off the position could be, in metres            |
-| **satellites**        | Optional, how many satellites the receiver can see                |
-| **time**              | Optional, the time from the satellites, in UTC                    |
+| Parameters                      |                                                              |
+| ------------------------------- | ------------------------------------------------------------ |
+| **latitude**                    | Optional, degrees north, between -90 and 90                  |
+| **longitude**                   | Optional, degrees east, between -180 and 180                 |
+| **altitude**                    | Optional, metres above sea level                             |
+| **speed / speedKmh / speedMph** | Optional, the speed in whichever unit you have it in (metres per second, km/h or mph), give one of the three |
+| **heading**                     | Optional, degrees clockwise from true north                  |
+| **accuracy**                    | Optional, how far off the position could be, in metres       |
+| **satellites**                  | Optional, how many satellites the receiver can see           |
+| **time**                        | Optional, the time from the satellites, in UTC               |
 
-If your source speaks NMEA (most GPS modules do), skip parsing it yourself and pipe the raw lines
-straight in:
+`reportNmea` takes one line of NMEA at a time. Damaged lines, lines saying there's no fix yet and
+the many kinds of line with nothing useful in them are all quietly skipped, so pipe in every line
+the module sends.
 
-```dart
-mySerialPort.lines.listen(SmartifyOsGps.reportNmea);
-```
+When the source goes away and the old reading shouldn't keep showing, call
+`SmartifyOsGps.clearFix()`.
 
-Damaged lines, lines saying there's no fix yet, and the many kinds of line with nothing useful in
-them are all quietly ignored, so it's safe to pipe every line a receiver sends into this.
+## Reading it back
 
-Call `SmartifyOsGps.clearFix()` when the source goes away and you don't want the old reading to
-keep showing.
-
-## Reading state
+For a one-off look, from anywhere:
 
 ```dart
-final speed = SmartifyOsGps.fix?.speedKmh;
+final speed = SmartifyOsGps.fix?.speedKmh; // null while there's no reading
 ```
 
-To have your own widget redraw the moment a new reading comes in, watch one of the providers
-instead of reading `SmartifyOsGps` once. If you haven't used riverpod before, read
-[Riverpod Basics](../riverpod-basics.md) first.
+`SmartifyOsGps.fix` is a `GpsFix` with every field from the table above, plus `speedKmh` and
+`speedMph` already worked out. `SmartifyOsGps.speed` is the speed alone, in metres per second.
+
+Reading a getter once doesn't redraw anything when a new reading comes in. For a widget that keeps
+itself up to date, watch `gpsSpeedProvider` or `gpsFixProvider` instead. If you haven't used
+riverpod before, read [Riverpod Basics](../riverpod-basics.md) first.
 
 ```dart
 class SpeedReadout extends ConsumerWidget {
@@ -104,23 +93,19 @@ class SpeedReadout extends ConsumerWidget {
 }
 ```
 
-`gpsSpeedProvider` is in **metres per second**, multiply by `3.6` for km/h or by `2.236936` for
-mph, or watch `gpsFixProvider` instead and read `GpsFix.speedKmh`/`GpsFix.speedMph` off it, which
-does the conversion for you. Watching just the speed rather than the whole fix means a car
-standing still at a junction doesn't rebuild your speed display ten times a second while its
-position wanders about.
+`gpsSpeedProvider` is in **metres per second**: multiply by `3.6` for km/h, or by `2.236936` for
+mph. Watching only the speed rather than the whole fix means a car waiting at a junction doesn't
+redraw your speed ten times a second while its position wanders about. `gpsFixProvider` gives the
+whole `GpsFix`.
 
-The full list: `gpsFixProvider` (the whole `GpsFix`, or `null` when there's no reading yet),
-`gpsSpeedProvider`, `gpsCapabilitiesProvider`. The same values are also available as plain,
-one-off getters (`SmartifyOsGps.fix`, `SmartifyOsGps.speed`, `SmartifyOsGps.capabilities`,
-`SmartifyOsGps.isReady`), useful inside a one-off function that isn't building UI, but reading one
-of those directly won't redraw anything when it later changes.
+If all you want is a number on screen, the info display already does that, see
+[Adding Values](../info-display/adding-values.md).
 
-## Capabilities
+## What the source knows
 
-A source is allowed to know only some of what a real GPS receiver knows, a car that only puts its
-speed on the wire reports a fix with a speed and nothing else. Always check
-`SmartifyOsGps.capabilities` before drawing something that needs a piece it might not have:
+A source is allowed to know only part of what a real receiver knows. A car that only puts its speed
+on the CAN bus reports a speed and nothing else. Check `SmartifyOsGps.capabilities` before drawing
+something that needs a piece it might not have:
 
 ```dart
 if (SmartifyOsGps.capabilities.has(GpsCapability.position)) {
@@ -129,8 +114,31 @@ if (SmartifyOsGps.capabilities.has(GpsCapability.position)) {
 ```
 
 The capabilities are `GpsCapability.position`, `.altitude`, `.speed`, `.heading`, `.accuracy`,
-`.time` and `.satellites`. Watch `gpsCapabilitiesProvider` rather than reading it once, some
-sources only work out what they can do once a reading has actually come in.
+`.time` and `.satellites`. A source you feed yourself works them out from what you've actually
+reported, so watch `gpsCapabilitiesProvider` rather than reading them once.
+
+## Setting it up
+
+GPS is on without any setup. `GpsConfig` in `SmartifyOs().init` is only for changing how it behaves.
+Each of these is also a setting of `smartify-os config` (`gps.fixTimeout`, say, see
+[Changing Settings](../cli/changing-settings.md)), and on the **GPS** page of the editor's Setup
+group.
+
+```dart
+await SmartifyOs().init(
+  gps: const GpsConfig(fixTimeout: Duration(seconds: 5)),
+);
+```
+
+| Parameters            |                                                                              |
+| --------------------- | ---------------------------------------------------------------------------- |
+| **enabled**           | Optional, defaults to `true`. Turn GPS off entirely, nothing is started and no permission is asked for |
+| **setClock**          | Optional, defaults to `true`. Sets the car's clock from the satellites whenever a reading carries a time. It's exact and needs no internet, the only way a car parked for a month comes back with the right time. See [Date & Time](../date-time/setting-the-time.md) |
+| **fixTimeout**        | Optional, defaults to never. How long a reading stays good after the source goes quiet. Set it when your source can stop without saying so (a module unplugged, a long tunnel), so the display doesn't keep showing an old speed forever |
+| **accuracy**          | Optional, defaults to `GpsAccuracy.best`. How hard an Android tablet's receiver works, `.low`, `.medium`, `.high` or `.best`. Ignored by a source you feed yourself |
+| **distanceFilter**    | Optional, defaults to `0`. How far the car has to move, in metres, before an Android tablet's receiver reports again. Leave it at `0` for a live speed |
+| **requestPermission** | Optional, defaults to `true`. Ask for the location permission on the first run on Android. Turn it off if your app already asks somewhere else |
+| **backend**           | Optional, replaces where readings come from entirely, see [Your own source](#your-own-source) |
 
 ## Errors
 
@@ -142,50 +150,61 @@ SmartifyOsGps.errors.listen((error) {
 });
 ```
 
-`error.code` is a `GpsErrorCode`: `.unsupported` (this platform has no GPS built in),
-`.permissionDenied`, `.disabled` (location switched off on the whole machine), `.noFix` (there's a
-receiver, it just can't see enough satellites yet), or `.unknown`. `SmartifyOsGps.lastError` holds
-the most recent one, worth checking on a screen that opens well after the car has booted, since
-the one failure that matters (the driver said no to the location permission) happens right at
-startup.
+`error.code` is a `GpsErrorCode`: `.unsupported` (this system has no GPS of its own),
+`.permissionDenied`, `.disabled` (location is switched off on the whole tablet), `.noFix` (there's a
+receiver, it just can't see enough satellites yet) or `.unknown`.
 
-## Custom backends
+`SmartifyOsGps.lastError` holds the most recent one. It's worth checking on a screen that opens long
+after startup, since the failure that matters most (the driver said no to the location permission)
+happens right while the car boots.
 
-`GpsConfig.backend` replaces the whole GPS implementation. You only need this if the car has its
-own way of getting position or speed that isn't "hand readings over with `reportFix`/`reportNmea`",
-say a permanent CAN bus connection.
+## Trying it without driving
 
-Most of the time you don't need a custom backend at all, just call `SmartifyOsGps.reportFix` or
-`SmartifyOsGps.reportNmea` from wherever your readings come from and leave `GpsConfig.backend`
-unset. Reach for a backend when you want to say up front what your source can do, rather than
-letting SmartifyOS work it out from what's actually been reported, which is the tidiest way to
-give a car its own named GPS:
+With developer options on, the developer options page can make the car believe it's somewhere else,
+for trying a map or anything location based without going there. Only the position is faked, the
+speed and time still come from the receiver. From code it's:
 
 ```dart
-class MyCanBusGps extends ManualGpsBackend {
-  MyCanBusGps()
+SmartifyOsGps.setFakePosition(latitude: 48.137, longitude: 11.575);
+SmartifyOsGps.clearFakePosition();
+```
+
+It only works while developer options are on, and goes away when they're turned off, see
+[Using Developer Options](../developer-options/using-developer-options.md).
+
+## Your own source
+
+You'll rarely need this. Calling `reportFix` or `reportNmea` from wherever your readings come from
+covers almost every car.
+
+The one time it's worth it is to say up front what your source can do, rather than letting
+SmartifyOS work it out from what you report. A car that will only ever report a speed then never
+offers a map with nowhere to point. Extend `ManualGpsBackend` with the capabilities you have:
+
+```dart title="lib/gps.dart"
+import 'package:smartify_os_core/gps.dart';
+
+class CanBusGps extends ManualGpsBackend {
+  CanBusGps()
     : super(capabilities: const GpsCapabilities({GpsCapability.speed}));
 }
 ```
 
-```dart
+```dart title="lib/main.dart"
 await SmartifyOs().init(
-  gps: GpsConfig(backend: MyCanBusGps.new),
+  gps: GpsConfig(backend: CanBusGps.new),
 );
 ```
 
-Feed it the same way as before, `SmartifyOsGps.reportFix`/`.reportNmea` still work, just now the
-UI knows in advance that only the speed will ever show up, and doesn't offer to draw a map that
-will never have anywhere to point at.
+`reportFix` and `reportNmea` work exactly as before.
 
 ### Writing one from scratch
 
-For a source that doesn't fit the "hand over readings" shape at all, one with its own polling
-loop or its own permission dance to do first, implement `GpsBackend` directly instead of
-extending `ManualGpsBackend`:
+For a source that doesn't fit "hand over readings" at all, one with its own polling loop or a
+permission to ask for first, implement `GpsBackend` directly:
 
-```dart
-class MyCanBusGpsBackend implements GpsBackend {
+```dart title="lib/gps.dart"
+class CanBusGpsBackend implements GpsBackend {
   final _fixes = StreamController<GpsFix?>.broadcast();
   final _capabilities = StreamController<GpsCapabilities>.broadcast();
   GpsFix? _fix;
@@ -201,6 +220,9 @@ class MyCanBusGpsBackend implements GpsBackend {
   GpsCapabilities get capabilities => _caps;
   @override
   Stream<GpsCapabilities> get capabilityChanges => _capabilities.stream;
+
+  @override
+  Stream<GpsException> get errors => const Stream.empty();
 
   @override
   Future<void> start(GpsConfig config) async {
@@ -221,17 +243,8 @@ class MyCanBusGpsBackend implements GpsBackend {
 }
 ```
 
-Pass it the same way as any other backend:
-
-```dart
-await SmartifyOs().init(
-  gps: GpsConfig(backend: MyCanBusGpsBackend.new),
-);
-```
-
-A plain broadcast `StreamController` is all you need, `fixChanges` and `capabilityChanges` only
-ever get one listener (`SmartifyOsGps` itself, right after `start` returns), so there's no late
-listener to catch up. Throw a `GpsException` from `start` for anything that stops the GPS from
-coming up at all (no permission, no hardware found), that's what ends up on
-`SmartifyOsGps.lastError`. Only override `errors` (it defaults to an empty stream) if your source
-can fail again after `start` has already returned, a receiver switched off mid-drive, say.
+`myCanBus` stands for however your own code reads the car. A plain broadcast `StreamController` is
+enough, `SmartifyOsGps` is the only thing listening and starts as soon as `start` returns. Throw a
+`GpsException` from `start` for anything that stops the GPS from coming up at all (no permission, no
+hardware), it ends up on `SmartifyOsGps.errors` and `lastError`. Return a stream of your own from
+`errors` only if your source can also fail after it started, a receiver switched off mid drive say.

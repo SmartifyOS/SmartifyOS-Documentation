@@ -2,29 +2,37 @@
 sidebar_position: 1
 ---
 
-# Setting The Time
+# Setting the Time
 
-`SmartifyOsTime` is the car's clock: what time it is, what zone it is in, and how to change
-either. **Most of this page is not something you need to do.** The built-in Date & time settings
-page already lets the driver pick a region, switch between a 24 hour and a 12 hour clock, and
-turn automatic time on or off, no setup needed for any of that. Reach for `SmartifyOsTime`
-yourself only when your car has its own source of the time (a GPS module, say) or you're building
-something that needs to show or format a time.
+`SmartifyOsTime`, from `package:smartify_os_core/date_time.dart`, is the car's clock: what time it
+is, which time zone the car is in, and how to change either.
 
-Everywhere in your car app, use `SmartifyOsTime.now` instead of `DateTime.now()`. It's the same
-kind of value, but it's in the zone the driver picked and includes any correction SmartifyOS is
-applying, so a widget built from it always agrees with the clock in the status bar.
+Most cars need nothing from this page. The Date & time page in Settings already lets the driver pick
+their time zone, switch between a 24 hour and a 12 hour clock, and turn automatic time on or off.
+Read on if your car has its own source for the time (a GPS module, say), or you're building
+something that shows a time.
+
+## Always use SmartifyOsTime.now
+
+Anywhere in your app where you'd write `DateTime.now()` to show the driver a time, write
+`SmartifyOsTime.now` instead:
 
 ```dart
-Text('It is currently ${SmartifyOsTime.now}');
+Text('Trip started at ${formatClockTime(context, SmartifyOsTime.now)}');
 ```
 
-**None of the `SmartifyOsTime` methods throw.** A machine that won't let its clock be changed
-just gets handled another way, covered below, not an exception.
+It's the same kind of value, but it's in the time zone the driver picked, with summer time right,
+and it includes any correction SmartifyOS makes on a computer that won't let its clock be set. That
+way your own widgets always agree with the clock in the status bar. (Plain `DateTime.now()` is
+still fine for measuring how long something took, where only the difference matters.)
 
-## Startup config
+`SmartifyOsTime.nowUtc` is the same moment in UTC, for anything you send somewhere else or write
+down.
 
-Pick the zone the car starts out in with `DateTimeConfig`, passed to `SmartifyOs.init`:
+## The time zone the car starts in
+
+`smartify-os create` asks which time zone the car is in and writes it into `lib/main.dart` as a
+`DateTimeConfig`:
 
 ```dart
 await SmartifyOs().init(
@@ -32,87 +40,67 @@ await SmartifyOs().init(
 );
 ```
 
-| Parameters          |                                                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **timeZone**          | Optional, a standard `Region/City` name like `'Europe/Berlin'`. Left out, the car starts out in whatever zone the machine itself is set to |
-| **automatic**         | Optional, defaults to `true`. Whether the machine keeps its own time (from the network, or from a GPS module you feed it yourself). Turn it off for a car that's never online, so the driver sets the clock by hand |
-| **use24HourClock**    | Optional, `true` for 13:45, `false` for 1:45 PM, left out to follow the machine's own setting |
-| **setSystemClock**    | Optional, defaults to `true`. Leave this on, it's what actually changes the machine's real clock when the time is set. Turn it off only when something else on the car already owns the clock and SmartifyOS should stay out of the way |
+This only decides how the car starts out. Whatever the driver later changes on the Date & time page
+is remembered, and wins from then on.
 
-This only decides what the car starts out as. Anything the driver later changes on the Date &
-time settings page is remembered and wins over this from then on.
+| Parameters         |                                                                            |
+| ------------------ | -------------------------------------------------------------------------- |
+| **timeZone**       | Optional, a standard `Region/City` name like `'Europe/Berlin'`. Leave it out and the car starts in whatever zone the computer itself is set to |
+| **automatic**      | Optional, defaults to `true`. Lets the computer keep its own time, from the internet or from a GPS module. Turn it off for a car that's never online, so the driver sets the clock by hand |
+| **use24HourClock** | Optional, `true` for 13:45, `false` for 1:45 PM. Leave it out to follow the computer's own setting |
+| **setSystemClock** | Optional, defaults to `true`. Leave it on: it's what changes the computer's real clock when the time is set. Turn it off only when something else on the car already owns the clock |
+| **backend**        | Optional, a clock of your own, only for testing or a car whose clock is set some way SmartifyOS doesn't know |
 
-## Setting the time
+You can also change these with the CLI, or on the Date and time setup page in
+[the editor](../editor/setting-up-your-car.md):
 
-If you've set up [GPS](../gps/using-gps.md), this already happens on its own, `GpsConfig.setClock`
-(on by default) sets the clock from the satellites the moment a reading carries a time. You only
-need to call this yourself if the car has some other source that knows the exact time:
-
-```dart
-mySource.times.listen(SmartifyOsTime.setTime);
+```bash
+smartify-os config dateTime.timeZone Europe/Vienna
 ```
 
-Give `setTime` whatever your source hands you, in UTC or local, either is converted correctly. On
-a machine that lets its clock be set (a normal Linux car), this sets the real system clock, so
-`date` and any logs are right too. On one that doesn't (an Android tablet you haven't unlocked),
-SmartifyOS remembers how far off the machine is and shows the right time anyway. Either way it's
-saved, so the next drive starts out right.
+## Setting the time from your own source
 
-It's safe to call as often as you like, a time that's already right changes nothing, so a GPS
+If you've set up [GPS](../gps/using-gps.md), this already happens by itself: the clock is set from
+the satellites as soon as a reading carries the time. Only call this yourself if the car has some
+other source that knows the exact time:
+
+```dart
+myTimeSource.times.listen(SmartifyOsTime.setTime);
+```
+
+Give `setTime` whatever your source hands you, UTC or local, both are handled. On a car running
+Linux this sets the computer's real clock, so logs are right too. On one that won't let its clock
+be set (an Android tablet, usually), SmartifyOS remembers how far off the computer is and shows the
+right time anyway. Either way it's saved, so the next drive starts out right.
+
+It's safe to call as often as you like. A time that's already right changes nothing, so a GPS
 module reporting several times a second costs nothing.
+
+`setTime` hands back `false` in one case: the computer is keeping its own time (`automatic` is on)
+and would only correct it back. Turn automatic time off first if your time should win:
+
+```dart
+await SmartifyOsTime.setAutomatic(false);
+await SmartifyOsTime.setTime(timeFromMyModule);
+```
 
 ## Building a time from parts
 
-Use `SmartifyOsTime.dateTime(...)` instead of `DateTime(...)` whenever you put a time together
-from its own year/month/day/hour/minute:
+When you put a time together from a year, month, day, hour and minute, use
+`SmartifyOsTime.dateTime(...)` instead of `DateTime(...)`:
 
 ```dart
-final meetingTime = SmartifyOsTime.dateTime(2026, 8, 24, 13, 45);
+final service = SmartifyOsTime.dateTime(2026, 8, 24, 13, 45);
 ```
 
-A plain `DateTime(...)` is built in whatever zone the app process started in, which usually isn't
-the zone the car is set to. `SmartifyOsTime.dateTime(...)` builds it in the car's own zone
-instead.
+A plain `DateTime(...)` is made in whatever zone the app happened to start in, which usually isn't
+the zone the car is set to.
 
-## Time zone
+## Showing a time
 
-```dart
-SmartifyOsTime.timeZone;              // 'Europe/Berlin'
-await SmartifyOsTime.setTimeZone('Europe/Berlin');
-```
-
-Summer time follows on its own once the zone is set. `SmartifyOsTime.timeZones` lists every zone
-that can be picked (the same list the built-in settings page uses), each one a `TimeZoneOption`
-with a `region` (`'Europe'`), a `city` (`'Berlin'`), the real `id` to pass to `setTimeZone`
-(`'Europe/Berlin'`), and an `offsetLabel` written the way people expect to read it (`'GMT+2'`):
-
-```dart
-for (final zone in SmartifyOsTime.timeZones) {
-  print('${zone.region} / ${zone.city} (${zone.offsetLabel})');
-}
-```
-
-## Automatic time
-
-```dart
-SmartifyOsTime.automatic;             // true while the machine keeps its own time
-await SmartifyOsTime.setAutomatic(false);
-```
-
-While this is on, there's no point calling `setTime` by hand, the machine only corrects the clock
-back on its own. Turn it off first if you want your own time to win.
-
-## 12 hour or 24 hour
-
-```dart
-SmartifyOsTime.use24HourClock;        // true, false, or null to follow the machine
-await SmartifyOsTime.setUse24HourClock(true);
-```
-
-This choice applies to the whole car, not just SmartifyOS's own clock. It's set into Flutter's
-`MediaQuery` for you, so anything that formats a time the normal Flutter way already agrees with
-it. To format a time yourself the same way, use the helpers in `package:smartify_os_core/widgets.dart`
-instead of formatting it by hand:
+Whether the car shows 13:45 or 1:45 PM is the driver's choice, so don't format times by hand. Use
+these helpers from `package:smartify_os_core/date_time.dart`, which follow that choice and write day
+and month names in the car's language:
 
 ```dart
 Text(formatClockTime(context, SmartifyOsTime.now));       // 13:45 or 1:45 PM
@@ -120,11 +108,44 @@ Text(formatClockDate(context, SmartifyOsTime.now));       // Sunday, 23 August 2
 Text(formatClockDateShort(context, SmartifyOsTime.now));  // 23 Aug 2026
 ```
 
-## What the machine allows
+`context` is the `BuildContext` your widget's `build` method gets.
 
-Not every machine lets SmartifyOS change everything about its clock, an Android tablet you
-haven't unlocked usually allows none of it. Check `SmartifyOsTime.capabilities` before offering a
-control the machine would only ignore:
+To have a widget of your own redraw when the time, the zone or the clock format changes, watch
+`dateTimeStateProvider` (see [Riverpod Basics](../riverpod-basics.md)), or `clockProvider` for the
+current time ticking over every minute, the way the status bar clock does:
+
+```dart
+final now = ref.watch(clockProvider).value ?? SmartifyOsTime.now;
+Text(formatClockTime(context, now));
+```
+
+## Changing the clock from code
+
+Everything on the Date & time settings page can be changed from your own code too:
+
+```dart
+SmartifyOsTime.timeZone;                     // 'Europe/Berlin'
+await SmartifyOsTime.setTimeZone('Europe/Berlin');
+
+SmartifyOsTime.automatic;                    // true while the computer keeps its own time
+await SmartifyOsTime.setAutomatic(false);
+
+SmartifyOsTime.use24HourClock;               // true, false, or null to follow the computer
+await SmartifyOsTime.setUse24HourClock(true);
+```
+
+None of these throw. Summer time follows by itself once the zone is set. A zone name SmartifyOS
+doesn't know falls back to UTC and logs a warning.
+
+`SmartifyOsTime.timeZones` lists every zone that can be picked, the same list the settings page
+shows. Each is a `TimeZoneOption` with a `region` (`'Europe'`), a `city` (`'Berlin'`), the `id` to
+pass to `setTimeZone` (`'Europe/Berlin'`), and an `offsetLabel` the way people read it (`'GMT+2'`).
+
+## What the computer allows
+
+Not every computer lets SmartifyOS change everything about its clock. An Android tablet usually
+allows none of it. Check `SmartifyOsTime.capabilities` before showing a control the computer would
+ignore:
 
 ```dart
 if (SmartifyOsTime.capabilities.has(DateTimeCapability.setTimeZone)) {
@@ -132,33 +153,17 @@ if (SmartifyOsTime.capabilities.has(DateTimeCapability.setTimeZone)) {
 }
 ```
 
-The three capabilities are `DateTimeCapability.setClock`, `.setTimeZone` and `.automaticTime`.
-When `SmartifyOsTime.usesOwnClock` is `true`, the machine wouldn't let its clock be set at all, so
-SmartifyOS is keeping the right time itself, the clock on screen is correct, the rest of the
-machine isn't. The built-in settings page already shows a note about this when it applies, you
-only need to check it yourself if you're building your own clock-related UI.
+The capabilities are `DateTimeCapability.setClock`, `.setTimeZone` and `.automaticTime`. When
+`SmartifyOsTime.usesOwnClock` is `true`, the computer wouldn't let its clock be set, so SmartifyOS
+is keeping the right time itself: the clock on screen is right, the rest of the computer isn't. The
+settings page already explains this to the driver, you only need it for screens of your own.
 
-## Reading it live
+## Asking the driver for a date or time
 
-To have your own widget redraw the moment the time, the zone or the clock format changes, watch
-`dateTimeStateProvider` instead of reading `SmartifyOsTime` once. If you haven't used riverpod
-before, read [Riverpod Basics](../riverpod-basics.md) first.
-
-```dart
-final state = ref.watch(dateTimeStateProvider).value;
-```
-
-`state` is a `DateTimeState` with the same information as the plain getters above (`timeZone`,
-`automatic`, `use24HourClock`, `capabilities`, `usesOffset`). Everything on `SmartifyOsTime` is
-also available as `SmartifyOsTime.changes`, a plain stream, if you'd rather not go through
-riverpod.
-
-## Asking for a date or time
-
-For your own settings row or dialog that needs a date or a time from the driver, use
-`ThemedDatePicker` and `ThemedTimePicker` instead of Flutter's own pickers, they're wheels you
-spin rather than boxes you type into, since a car screen usually has no keyboard, and they follow
-the active theme.
+For a screen of your own that needs a date or a time from the driver, use `ThemedDatePicker` and
+`ThemedTimePicker` (from `package:smartify_os_core/modals.dart`) instead of Flutter's own pickers.
+They're wheels to spin rather than boxes to type in, since a car screen usually has no keyboard, and
+they match the car's theme:
 
 ```dart
 final picked = await ThemedTimePicker.show(
@@ -166,9 +171,9 @@ final picked = await ThemedTimePicker.show(
   initial: TimeOfDay.fromDateTime(SmartifyOsTime.now),
 );
 if (picked != null) {
-  // ...
+  // the driver picked a time
 }
 ```
 
-`ThemedDatePicker.show` works the same way, taking an `initial` `DateTime` and returning `null`
-when cancelled.
+`ThemedDatePicker.show` works the same way with an `initial` `DateTime`. Both hand back `null` when
+the driver cancels.

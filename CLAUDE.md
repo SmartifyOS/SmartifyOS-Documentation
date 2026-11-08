@@ -1,9 +1,11 @@
 Docs site for SmartifyOS, an open source car infotainment system built in Flutter
 (`smartify_os_core`). Built with Docusaurus 3.
 
-These docs are for **end users of the `smartify_os_core` package** (people building their own
-car app on top of it). Never document internals of the core package itself, only the public API
-a user actually calls. The project isn't public yet, so a page can end with a `TODO:` line for
+These docs are for **end users of SmartifyOS** (people building their own car's app on top of
+`smartify_os_core`, with the `smartify-os` CLI or the SmartifyOS Editor). Never document internals
+of the core package itself, only the public API a user actually calls, and the CLI commands and
+editor panels they actually use. Wherever the CLI or the editor does a job for the reader (making
+a window's file, changing a setting), say so first, then explain the code it writes. The project isn't public yet, so a page can end with a `TODO:` line for
 anything not built or decided yet instead of guessing.
 
 **Assume little to no programming experience.** The reader may never have used Flutter, Dart, or
@@ -33,32 +35,33 @@ of your own".
   }
   ```
   `position` orders folders/pages relative to their siblings. Subfolders get their own
-  `_category_.json` and are positioned the same way (see `ui/` in the old docs for how nesting
-  worked).
+  `_category_.json` and are positioned the same way. `link.description` is a real sentence about
+  the section, not just its label.
 - Order of pages within a folder comes from frontmatter `sidebar_position`, not filenames.
-- A large feature area gets its own folder with 1+ pages inside; a small one can be a single
-  loose `.md` file at `docs/` root (see `intro.md`, `updating.md` in the old docs).
-- Sidebar order puts foundational sections first: Getting Started, then Windows, Theme and
-  Backgrounds, since nearly every later section's examples already assume you have a window to
-  open and a look you've picked. The "registry" sections (App List, Settings, Home Widgets,
-  Status Bar, Quick Settings, Notifications, Bluetooth, Sound) follow after that. Concept pages
-  (see below) go near the end, right before Example Project, a reader only needs one after
-  clicking a link from somewhere else, never on a first pass through the sidebar top to bottom.
-- A section covering several interchangeable options the reader picks one of (backgrounds, and
-  anything like it added later) gets one page per option inside its folder, not one long page,
-  so a new option later is just a new file, not a restructure. The `_category_.json`
-  `link.description` carries the shared intro that used to open a single combined page.
+- Every feature area gets its own folder, even with a single page in it; only Getting Started
+  and the concept pages are loose files at `docs/` root.
+- Sidebar order: Getting Started, The Editor, The CLI and Putting It On Your Car first (how to get
+  a car running at all), then Windows, Layouts, Themes and The Car (nearly every later example
+  assumes a window to open and a screen arranged), then the "registry" sections (App List,
+  Settings, Home Widgets, Status Bar, Quick Settings, Notifications, Info Display, Floating
+  Panels), then the car's hardware and services. Concept pages (see below) go near the end, right
+  before Example Project, a reader only needs one after clicking a link from somewhere else.
+- A section covering several interchangeable options the reader picks one of (the car's 3D model,
+  2D drawing or picture, and anything like it added later) gets one page per option inside its
+  folder, not one long page, so a new option later is just a new file, not a restructure.
 
 ## Concept pages
 
-A few things (Riverpod, so far) get their own standalone page at `docs/` root, `riverpod-basics.md`
-is the model: what it is in a sentence, then just enough to use it the way these docs use it
-(including exactly what file to create for it, see the beginner-experience rule above), nothing
+A few things get their own standalone page at `docs/` root: `saved-values.md` (Values That
+Change: `SavedValue`, `ValueNotifier` and `ref.watchValue`, the way a car's app keeps and follows
+its own values, no riverpod needed) and `riverpod-basics.md` (the optional extra, mainly for
+reading SmartifyOS's own providers in your own widgets). Each is what it is in a sentence, then
+just enough to use it the way these docs use it (including exactly what file to create for it, see the beginner-experience rule above), nothing
 about the wider ecosystem. If there's a fair "why not just use codegen/a fancier version of this"
 question a reader might ask, answer it honestly in a short closing section, but only introduce
 the fancier version at all when it does something the simple version genuinely can't, not just
 "less typing at scale". Every other page that relies on the concept links to it inline the first
-time it comes up ("see [Riverpod Basics](../riverpod-basics.md) if you haven't used that before")
+time it comes up ("see [Values That Change](../saved-values.md) if you haven't used that before")
 instead of re-explaining it. Add a new one here only when several sections would otherwise repeat
 the same beginner explanation. Position it near the end of the sidebar, just before Example
 Project, not up front, a reader only opens it after following a link from somewhere else, never
@@ -68,9 +71,12 @@ as the second thing they read top to bottom.
 
 Every "registry" section, the ones where the user builds up a list of their own (App List,
 Settings, Home Widgets, Status Bar, Quick Settings), ends with a `putting-it-together.md` page: a
-complete, realistic example spread across the same file layout `smartify_os_miata_app` actually
-uses, one loose file per concern directly under `lib/` (`app_list.dart`, `settings_pages.dart`,
-...), plus the `main.dart` that wires it into `SmartifyOs.init`. The point is showing a beginner
+complete, realistic example in the file layout the CLI and editor write (and
+`smartify_os_example_app/` in the SmartifyOS repo uses): one file per window in `lib/windows/`
+with its `AppListEntry` as a static `appListEntry`, tiles in `lib/quick_settings/`, widgets in
+`lib/home_widgets/`, settings pages in `lib/settings/`, plus the `main.dart` that hands them to
+`SmartifyOs().init`. Since `runApp(const SmartifyOsApp())` takes nothing, the pieces only meet in
+`init`. The point is showing a beginner
 where code they write actually lives in a real project, not just the one class in isolation the
 rest of the section already covered. Keep the running examples consistent with what the rest of
 the section already used (a `DoorsWindow`, a `lightsProvider`, ...) so the pieces visibly connect

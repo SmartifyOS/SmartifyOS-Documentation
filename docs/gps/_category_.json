@@ -1,8 +1,8 @@
 {
   "label": "GPS",
-  "position": 15,
+  "position": 23,
   "link": {
     "type": "generated-index",
-    "description": "GPS"
+    "description": "Where the car is and how fast it is going, from a tablet's own receiver or a GPS module you feed yourself."
   }
 }

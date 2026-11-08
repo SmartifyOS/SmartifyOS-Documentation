@@ -1,8 +1,8 @@
 {
   "label": "Sound",
-  "position": 12,
+  "position": 19,
   "link": {
     "type": "generated-index",
-    "description": "Sound"
+    "description": "The short sounds the car makes itself, chimes and warnings, and how to play your own."
   }
 }

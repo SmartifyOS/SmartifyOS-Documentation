@@ -1,0 +1,8 @@
+{
+  "label": "CAN Bus",
+  "position": 26,
+  "link": {
+    "type": "generated-index",
+    "description": "Small ESP32 boards all around the car (buttons, lights, sensors), talking to each other and to the screen over one pair of wires."
+  }
+}

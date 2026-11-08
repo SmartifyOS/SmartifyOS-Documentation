@@ -1,0 +1,8 @@
+{
+  "label": "The CLI",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "The smartify-os command line tool does everything the editor does, as commands you type in a terminal. You never have to touch Flutter, git or adb yourself."
+  }
+}

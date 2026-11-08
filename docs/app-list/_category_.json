@@ -1,8 +1,8 @@
 {
   "label": "App List",
-  "position": 5,
+  "position": 9,
   "link": {
     "type": "generated-index",
-    "description": "App List"
+    "description": "The grid of apps the driver opens from the bar, and how to put your own windows in it."
   }
 }

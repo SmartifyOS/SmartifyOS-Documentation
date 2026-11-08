@@ -1,0 +1,8 @@
+{
+  "label": "Night Mode",
+  "position": 24,
+  "link": {
+    "type": "generated-index",
+    "description": "Telling SmartifyOS whether it is dark outside, so everything with a night look switches at the same moment."
+  }
+}

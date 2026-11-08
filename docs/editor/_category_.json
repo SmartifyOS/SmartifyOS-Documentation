@@ -1,0 +1,8 @@
+{
+  "label": "The Editor",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "The SmartifyOS Editor is a desktop app for building your car's app by clicking rather than typing, with your car's screen running live in the middle."
+  }
+}

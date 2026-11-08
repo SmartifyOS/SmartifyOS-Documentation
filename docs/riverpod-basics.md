@@ -1,136 +1,131 @@
 ---
-sidebar_position: 18
+sidebar_position: 35
 ---
 
 # Riverpod Basics
 
-You'll see the word "riverpod" and a `ref.watch(...)` call all over these docs, on `visible`,
-`builder`, `isOn` and similar callbacks. Riverpod is a small library SmartifyOS itself is built
-on for keeping track of things that change while the car is running, is a door open, how much
-battery is left, what's playing. This page explains just enough of it to use in your own car, so
-the rest of the docs can point back here instead of re-explaining it every time.
+Riverpod is the library SmartifyOS itself uses to keep track of values that change. For your own
+values you don't need it, a `SavedValue` or a `ValueNotifier` with `ref.watchValue` does the job (see
+[Values That Change](./saved-values.md)). This page is for the one case where you do: showing one of
+SmartifyOS's own values (the song that's playing, the volume, whether it's night) in a widget you
+built yourself, so it updates the moment that value changes.
 
-You don't have to use it. Everywhere it comes up is optional. But it's the easiest way to make a
-row, a card or an icon update itself automatically whenever something changes, instead of you
-having to remember to call a `show`/`hide`/`set` method by hand every time.
+## When you need this
 
-`flutter_riverpod` isn't a dependency of your project by default, add it first:
+SmartifyOS keeps its values in **providers**, named after what they hold: `bluetoothTrackProvider`,
+`volumeProvider`, `nightModeProvider`, `gpsSpeedProvider` and so on. Each section of these docs
+lists its own.
 
-```bash
-flutter pub add flutter_riverpod
-```
-
-## Storing a value
-
-A "provider" is just a labeled box holding one piece of information. Create a new file for these
-in your project, for example `lib/providers.dart`, right alongside `app_list.dart`,
-`settings_pages.dart` and the other files described in the various "Putting It Together" pages.
-Inside it, declare a provider near the top of the file, outside of any class or function:
-
-```dart title="lib/providers.dart"
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final doorsOpenProvider = StateProvider<bool>((ref) => false);
-```
-
-`StateProvider<bool>` means it holds a `bool`, and `(ref) => false` is what it starts out as. Add
-as many as you like to the same file, one for each piece of information your car needs to track:
-
-```dart title="lib/providers.dart"
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final doorsOpenProvider = StateProvider<bool>((ref) => false);
-final batteryProvider = StateProvider<int>((ref) => 100);
-final lightsProvider = StateProvider<bool>((ref) => false);
-```
-
-Then, in any file that needs to read or change one of these, import it the same way you'd import
-any other file of your own:
+Inside anything you hand to SmartifyOS (a home widget's `builder`, a tile's `isOn`, an icon's
+`visible`) you already have a `ref`, so you can read a provider right there with `ref.watch`,
+nothing to set up:
 
 ```dart
-import 'package:my_car_app/providers.dart';
-```
-
-(`my_car_app` there stands for your own project's name, whatever you gave it in its
-`pubspec.yaml`.)
-
-## Reading it live
-
-Every callback in these docs that receives a small "context" object, `AppListContext`,
-`HomeWidgetContext`, `StatusBarContext`, `QuickSettingsContext`, `SettingsContext`, carries a
-`ref` alongside the usual `context`. Call `.watch(...)` on it to read a provider's current value,
-and SmartifyOS redraws that one piece of UI on its own whenever it changes, nothing else to wire
-up:
-
-```dart
-AppListEntry(
-  id: 'doors',
-  title: 'Doors',
-  icon: const Icon(Icons.sensor_door),
-  visible: (apps) => apps.ref.watch(doorsOpenProvider),
-  onOpen: (context) => SmartifyOsNavigator.push(context, const DoorsWindow()),
+HomeWidget.pinned(
+  id: 'speed',
+  title: 'Speed',
+  icon: const Icon(Icons.speed),
+  builder: (home) {
+    final speed = home.ref.watch(gpsSpeedProvider) ?? 0; // metres per second
+    return Text('${(speed * 3.6).round()} km/h');
+  },
 )
 ```
 
-This app list entry now only shows up while `doorsOpenProvider` is `true`.
+Only a widget class of your own, a window say, doesn't get a `ref` handed to it. That's what the
+rest of this page is about.
 
-## Reading it in your own widgets
+## Adding riverpod to your app
 
-A window or a settings page you build yourself is a normal Flutter widget, and a plain
-`StatelessWidget` can't watch a provider. Extend `ConsumerWidget` instead of `StatelessWidget`,
-it works exactly the same way except `build` also hands you a `ref`:
+Your app needs `flutter_riverpod` as a dependency of its own to build such a widget. Open
+`pubspec.yaml` in your app's folder and add it under `dependencies:`, with `any` as its version:
 
-```dart
-class DoorsWindow extends ConsumerWidget {
-  const DoorsWindow({super.key});
+```yaml title="pubspec.yaml"
+dependencies:
+  flutter_riverpod: any
+```
+
+`any` means "whichever version SmartifyOS uses", which is the one that works with it. The next
+`smartify-os run` picks it up.
+
+## Reading a provider in your own widget
+
+A normal widget extends `StatelessWidget` and can't read providers. Extend `ConsumerWidget`
+instead. It works exactly the same, except that `build` also hands you a `ref`:
+
+```dart title="lib/windows/now_playing_window.dart"
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smartify_os_core/bluetooth.dart';
+import 'package:smartify_os_core/widgets.dart';
+
+class NowPlayingWindow extends ConsumerWidget {
+  const NowPlayingWindow({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isOpen = ref.watch(doorsOpenProvider);
+    final track = ref.watch(bluetoothTrackProvider).value;
 
     return SmartifyOsWindow(
-      title: 'Doors',
-      child: Center(child: Text(isOpen ? 'Open' : 'Closed')),
+      title: 'Now playing',
+      child: Center(
+        child: Text(track?.title ?? 'Nothing playing'),
+      ),
     );
   }
 }
 ```
 
-(If your widget already needs to be a `StatefulWidget` for its own reasons, use
-`ConsumerStatefulWidget` and `ConsumerState` instead, the same idea applies.)
+`ref.watch(...)` gives you the value now, and rebuilds the widget every time it changes. The text
+above updates on its own whenever the song does.
 
-## Changing the value
+If your widget already has to be a `StatefulWidget`, use `ConsumerStatefulWidget` and
+`ConsumerState` instead. The `ref` is then a field of the state, there's nothing to pass around.
 
-From any `ref` (the one your `ConsumerWidget` gives you, or the one inside `apps`/`home`/
-`status`/`qs`/`settings` above), set a new value with:
+`ref.watchValue(...)` works on this `ref` too, so a `ConsumerWidget` can follow your own values and
+SmartifyOS's in the same place.
+
+## Values that arrive over time
+
+Many providers hold something that comes in from outside: the phone, the car's sensors, the
+system. Those give you an `AsyncValue` rather than the value itself, because at the very start
+there may be nothing yet. Add `.value` to get what's there, which is `null` until the first value
+arrives:
 
 ```dart
-ref.read(doorsOpenProvider.notifier).state = true;
+final night = ref.watch(nightModeProvider).value ?? false;
 ```
 
-`ref.read` instead of `ref.watch` here on purpose, you're not trying to redraw anything by
-writing to the provider, just changing what it holds. Whatever else is watching it updates on
-its own.
+To show something sensible from the very first frame, fall back to the facade's own getter, which
+always has an answer:
 
-:::tip[Tip]
+```dart
+final volume = ref.watch(volumeProvider).value?.volume ?? SmartifyOsVolume.volume;
+```
 
-Use `ref.watch(...)` to read a value that should redraw your UI when it changes, and
-`ref.read(...)` for a one-off read, or to change the value. Watching something you're about to
-change yourself in the same line of code is a common beginner mistake.
+Each section's page says what its providers hold.
 
-:::
+## watch or read
 
-## Beyond a simple value
+Use `ref.watch(...)` while building something, so it redraws when the value changes. Inside a
+button's `onTap` or any other code that runs once, use `ref.read(...)` instead: it gives you the
+value now without redrawing anything later.
 
-Every provider on this page is something your own code decides and writes into directly, a
-`StateProvider` is built exactly for that. If a value instead comes from something asynchronous,
-a stream from a plugin, a value read over the network, reach for `StreamProvider` or
-`FutureProvider` instead, same idea, just built for a value that arrives over time rather than
-one you set yourself.
+```dart
+ThemedButton(
+  onTap: () {
+    final track = ref.read(bluetoothTrackProvider).value;
+    debugPrint('Skipping ${track?.title}');
+    Bluetooth.next();
+  },
+  child: const Text('Next'),
+)
+```
 
-You'll also see `smartify_os_core` itself use a different style internally, `@riverpod`
-functions with generated code (`riverpod_generator`, `build_runner`). That doesn't let it do
-anything a plain provider like the ones on this page can't, it mainly saves typing once a
-project has dozens of providers that reference each other, which is why the core package (a much
-bigger codebase than your own car app) uses it. For the handful of providers a single car adds,
-there's no real need to reach for it.
+## Your own providers
+
+You can declare providers of your own too, riverpod is a full library. For a car's app there's
+rarely a reason to: a `ValueNotifier` or `SavedValue` does the same job with less to learn, and
+works with everything SmartifyOS hands you. You'll also see SmartifyOS's own code use `@riverpod`
+with generated code. That's there because SmartifyOS has hundreds of providers, not because it can
+do anything yours couldn't, so leave it out of your app.

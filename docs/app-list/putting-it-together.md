@@ -4,72 +4,78 @@ sidebar_position: 2
 
 # Putting It Together
 
-A short, complete example of adding one window to the app list in a real project, spread across
-a few files the way `smartify_os_miata_app` (see [Example Project](../example-project/example-project.md))
-does it: one file per concern, directly under `lib/`. `my_car_app` below stands for your own
-project's name, whatever you gave it in its `pubspec.yaml`.
+A complete example of one window in the app list, in the exact files `smartify-os window create`
+makes. The [example app](../example-project/example-project.md) is laid out the same way, so
+anything you find there fits into your own car's app the same way too.
+
+`smartify_os_my_car_app` below stands for your own app's name, the `name:` at the top of its `pubspec.yaml`.
+
+Every window gets a file of its own in `lib/windows/`, with its app list entry kept next to it:
 
 ```dart title="lib/windows/doors_window.dart"
 import 'package:flutter/material.dart';
+import 'package:smartify_os_core/app_list.dart';
+import 'package:smartify_os_core/navigator.dart';
 import 'package:smartify_os_core/widgets.dart';
 
+/// Shows which doors are open.
 class DoorsWindow extends StatelessWidget {
   const DoorsWindow({super.key});
+
+  /// What it's called, at the top of the window and under its icon.
+  static const title = 'Doors';
+
+  /// Its icon in the app list. lib/main.dart hands it to SmartifyOS.
+  static final appListEntry = AppListEntry(
+    id: 'doors',
+    title: title,
+    icon: const Icon(Icons.sensor_door),
+    order: 10,
+    onOpen: (context) => SmartifyOsNavigator.push(context, const DoorsWindow()),
+  );
 
   @override
   Widget build(BuildContext context) {
     return const SmartifyOsWindow(
-      title: 'Doors',
+      title: title,
       child: Center(child: Text('All doors closed')),
     );
   }
 }
 ```
 
-```dart title="lib/app_list.dart"
-import 'package:flutter/material.dart';
-import 'package:smartify_os_core/app_list.dart';
-import 'package:smartify_os_core/navigator.dart';
-import 'package:my_car_app/windows/doors_window.dart';
-
-/// The entries this car adds to the app list.
-final myAppListEntries = <AppListEntry>[
-  AppListEntry(
-    id: 'doors',
-    title: 'Doors',
-    icon: const Icon(Icons.sensor_door),
-    onOpen: (context) => SmartifyOsNavigator.push(context, const DoorsWindow()),
-  ),
-];
-```
+`lib/main.dart` imports the window and hands its entry to SmartifyOS. Everything else your app sets
+up stays as it was:
 
 ```dart title="lib/main.dart"
 import 'package:flutter/material.dart';
+import 'package:smartify_os_my_car_app/windows/doors_window.dart';
 import 'package:smartify_os_core/app_list.dart';
-import 'package:smartify_os_core/backgrounds.dart';
 import 'package:smartify_os_core/core.dart';
-import 'package:my_car_app/app_list.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await SmartifyOs().init(
-    appList: AppListConfig(entries: myAppListEntries),
+    // Your own windows, each with its icon in the app list.
+    appList: AppListConfig(entries: [DoorsWindow.appListEntry]),
   );
-  runApp(
-    SmartifyOsApp(
-      // See Backgrounds for the other options.
-      background: ImageBackground(
-        imageAssetPath: 'packages/smartify_os_core/assets/background.png',
-      ),
-    ),
-  );
+
+  runApp(const SmartifyOsApp());
 }
 ```
 
-`main.dart` never has to know what a `DoorsWindow` looks like, only `app_list.dart` imports it.
-Add another window later by writing its file, adding one `AppListEntry` to the list in
-`app_list.dart`, and nothing in `main.dart` changes at all.
+That's the whole pattern. `main.dart` never needs to know what the doors window looks like, only
+that it has an entry. The next window is one more file in `lib/windows/` and one more item in the
+`entries` list, which is exactly what the CLI does for you each time you run
+`smartify-os window create`.
 
-If a window needs its own settings page or home widget too, add those the same way, in
-`settings_pages.dart` or `home_widgets.dart` alongside `app_list.dart`, each importing whatever
-window files it needs. See their own "Putting It Together" pages for the same pattern.
+To have the doors window start in the dock as well, add its `id` to the dock apps (see
+[The Bar](../layouts/the-bar.md)):
+
+```dart title="lib/main.dart"
+bar: const BarConfig(
+  content: BarContent.infoDisplayAndDock(),
+  dockApps: ['doors', AppListEntries.settings],
+),
+```

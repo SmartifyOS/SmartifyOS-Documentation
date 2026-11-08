@@ -4,59 +4,67 @@ sidebar_position: 2
 
 # Putting It Together
 
-A short, complete example of adding a status bar icon in a real project, spread across a few
-files the way `smartify_os_miata_app` (see [Example Project](../example-project/example-project.md))
-does it: one file per concern, directly under `lib/`.
+A complete example of a status bar icon in a real app, the way the
+[example app](../example-project/example-project.md) does it: a headlights icon that's only there
+while the headlights are on.
 
-This one uses `lightsProvider` from [Riverpod Basics](../riverpod-basics.md), so the icon comes
-and goes on its own whenever the lights are switched, nothing to call by hand. `my_car_app` below stands for your own project's name, whatever you gave
-it in its `pubspec.yaml`.
+`smartify_os_my_car_app` below stands for your own app's name, the `name:` at the top of its `pubspec.yaml`.
 
-```dart title="lib/providers.dart"
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final lightsProvider = StateProvider<bool>((ref) => false);
-```
+All of your own icons go in one file:
 
 ```dart title="lib/status_icons.dart"
 import 'package:flutter/material.dart';
 import 'package:smartify_os_core/status_bar.dart';
-import 'package:my_car_app/providers.dart';
 
-/// The status bar icons this car adds.
+/// The id of the icon that shows while the headlights are on.
+const headlightsStatusIcon = 'headlights';
+
+/// This car's own icons in the status bar, next to the ones SmartifyOS puts
+/// there by itself.
 final myStatusIcons = <StatusIcon>[
-  StatusIcon.builder(
-    id: 'lights',
-    side: StatusBarSide.end,
-    visible: (status) => status.ref.watch(lightsProvider),
-    builder: (status) => const Icon(Icons.lightbulb),
-  ),
+  StatusIcon(id: headlightsStatusIcon, icon: const Icon(Icons.highlight)),
 ];
 ```
 
-```dart title="lib/main.dart"
-import 'package:flutter/material.dart';
-import 'package:smartify_os_core/backgrounds.dart';
-import 'package:smartify_os_core/core.dart';
-import 'package:smartify_os_core/status_bar.dart';
-import 'package:my_car_app/status_icons.dart';
+Whatever knows about the headlights shows and hides the icon:
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await SmartifyOs().init(
-    statusBar: StatusBarConfig(icons: myStatusIcons),
-  );
-  runApp(
-    SmartifyOsApp(
-      // See Backgrounds for the other options.
-      background: ImageBackground(
-        imageAssetPath: 'packages/smartify_os_core/assets/background.png',
-      ),
-    ),
-  );
+```dart title="lib/lights.dart"
+import 'package:smartify_os_my_car_app/status_icons.dart';
+import 'package:smartify_os_core/status_bar.dart';
+
+/// Call this whenever the headlights are switched, from a sensor, a switch
+/// or a quick settings tile.
+void headlightsChanged({required bool on}) {
+  if (on) {
+    SmartifyOsStatusBar.showIcon(headlightsStatusIcon);
+  } else {
+    SmartifyOsStatusBar.hideIcon(headlightsStatusIcon);
+  }
 }
 ```
 
-Whatever in your own code actually knows when the lights are on just has to set
-`ref.read(lightsProvider.notifier).state = true;`, from wherever that happens, the icon takes
-care of the rest.
+And `lib/main.dart` hands the icons to SmartifyOS, with the headlights one hidden until they're on:
+
+```dart title="lib/main.dart"
+import 'package:flutter/material.dart';
+import 'package:smartify_os_my_car_app/status_icons.dart';
+import 'package:smartify_os_core/core.dart';
+import 'package:smartify_os_core/status_bar.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SmartifyOs().init(
+    statusBar: StatusBarConfig(
+      icons: myStatusIcons,
+      hiddenIcons: {headlightsStatusIcon},
+    ),
+  );
+
+  runApp(const SmartifyOsApp());
+}
+```
+
+The next icon is one more `StatusIcon` in the list in `status_icons.dart`. If your car already keeps
+the headlights in a `ValueNotifier`, you can skip `lights.dart` and give the icon a `visible` instead,
+see [Adding Status Bar Icons](./adding-icons.md#showing-it-only-sometimes).

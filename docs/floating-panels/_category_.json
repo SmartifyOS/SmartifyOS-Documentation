@@ -1,0 +1,8 @@
+{
+  "label": "Floating Panels",
+  "position": 16,
+  "link": {
+    "type": "generated-index",
+    "description": "Floating panels sit over everything on screen, windows included, until your code takes them away."
+  }
+}

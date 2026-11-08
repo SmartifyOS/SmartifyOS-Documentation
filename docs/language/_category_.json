@@ -1,0 +1,8 @@
+{
+  "label": "Language",
+  "position": 22,
+  "link": {
+    "type": "generated-index",
+    "description": "Which language the car is in, and how to keep your own texts in the same one."
+  }
+}

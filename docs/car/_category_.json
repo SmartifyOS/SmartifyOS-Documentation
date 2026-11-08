@@ -1,0 +1,8 @@
+{
+  "label": "The Car",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Your own car on the screen, as a 3D model, a 2D drawing or a picture, with its wheels, doors and lights moving along with the real thing."
+  }
+}

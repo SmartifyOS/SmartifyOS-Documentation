@@ -1,0 +1,8 @@
+{
+  "label": "Music",
+  "position": 18,
+  "link": {
+    "type": "generated-index",
+    "description": "Playing songs from USB sticks with the built-in music player, and showing a player of your own on the home screen the same way."
+  }
+}

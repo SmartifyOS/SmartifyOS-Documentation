@@ -1,0 +1,8 @@
+{
+  "label": "Info Display",
+  "position": 15,
+  "link": {
+    "type": "generated-index",
+    "description": "The info display shows the speed, and any other number your car knows (engine speed, range, oil temperature), one or two at a time."
+  }
+}

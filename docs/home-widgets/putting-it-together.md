@@ -4,79 +4,145 @@ sidebar_position: 2
 
 # Putting It Together
 
-A short, complete example of adding a home widget in a real project, spread across a few files
-the way `smartify_os_miata_app` (see [Example Project](../example-project/example-project.md))
-does it: one file per concern, directly under `lib/`.
+A complete example with one of each kind, in the exact files `smartify-os widget create` makes: a
+card that turns up while a door is open and opens the doors window when tapped, and a pinned gauge
+that's always there. The [example app](../example-project/example-project.md) has the same pair (a
+tap counter card and an engine gauge).
 
-This one uses `doorsOpenProvider` from [Riverpod Basics](../riverpod-basics.md), so the card
-appears on its own whenever a door opens, and goes away on its own once every door is shut,
-nothing to call by hand. `my_car_app` below stands for your own project's name, whatever you gave
-it in its `pubspec.yaml`.
+`smartify_os_my_car_app` below stands for your own app's name, the `name:` at the top of its `pubspec.yaml`.
 
-```dart title="lib/providers.dart"
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+## Something to show
 
-final doorsOpenProvider = StateProvider<bool>((ref) => false);
+Both widgets show something the car knows. Here that's two plain values in a file of your own,
+which whatever reads the car's sensors sets (see [Values That Change](../saved-values.md)):
+
+```dart title="lib/car_state.dart"
+import 'package:flutter/foundation.dart';
+
+/// Whether any door is open. Set it from whatever reads the door sensors.
+final doorOpen = ValueNotifier(false);
+
+/// The oil temperature in °C, or null before the first reading.
+final oilTemperature = ValueNotifier<double?>(null);
 ```
 
-```dart title="lib/windows/doors_window.dart"
-import 'package:flutter/material.dart';
-import 'package:smartify_os_core/widgets.dart';
+## The card
 
-class DoorsWindow extends StatelessWidget {
-  const DoorsWindow({super.key});
+```dart title="lib/home_widgets/door_open_widget.dart"
+import 'package:flutter/material.dart';
+import 'package:smartify_os_my_car_app/car_state.dart';
+import 'package:smartify_os_my_car_app/windows/doors_window.dart';
+import 'package:smartify_os_core/home_widgets.dart';
+import 'package:smartify_os_core/navigator.dart';
+import 'package:smartify_os_core/saved_values.dart';
+import 'package:smartify_os_core/theme.dart';
+
+/// A card that shows up by itself while a door is open, and opens the doors
+/// window when tapped.
+final doorOpenWidget = HomeWidget(
+  id: 'door_open',
+  title: 'Door open',
+  icon: const Icon(Icons.sensor_door),
+  // Where it sits among the cards, smaller first. A warning goes early.
+  order: 10,
+  visible: (home) => home.ref.watchValue(doorOpen),
+  onTap: (context) => SmartifyOsNavigator.push(context, const DoorsWindow()),
+  builder: (home) => const _DoorOpenView(),
+);
+
+class _DoorOpenView extends StatelessWidget {
+  const _DoorOpenView();
 
   @override
   Widget build(BuildContext context) {
-    return const SmartifyOsWindow(
-      title: 'Doors',
-      child: Center(child: Text('A door is open')),
+    final text = context.smartifyOsText;
+
+    return Row(
+      spacing: 12,
+      children: [
+        const Icon(Icons.sensor_door),
+        Text('A door is open', style: text.title),
+      ],
     );
   }
 }
 ```
 
-```dart title="lib/home_widgets.dart"
-import 'package:flutter/material.dart';
-import 'package:smartify_os_core/home_widgets.dart';
-import 'package:smartify_os_core/navigator.dart';
-import 'package:my_car_app/providers.dart';
-import 'package:my_car_app/windows/doors_window.dart';
+`DoorsWindow` is the window from the [App List example](../app-list/putting-it-together.md).
 
-/// The home widgets this car adds.
-final myHomeWidgets = <HomeWidget>[
-  HomeWidget(
-    id: 'doors',
-    visible: (home) => home.ref.watch(doorsOpenProvider),
-    onTap: (context) => SmartifyOsNavigator.push(context, const DoorsWindow()),
-    builder: (home) => const Text('A door is open'),
+## The pinned widget
+
+```dart title="lib/home_widgets/oil_temperature_widget.dart"
+import 'package:flutter/material.dart';
+import 'package:smartify_os_my_car_app/car_state.dart';
+import 'package:smartify_os_core/home_widgets.dart';
+import 'package:smartify_os_core/saved_values.dart';
+import 'package:smartify_os_core/theme.dart';
+
+/// A gauge that stays where the driver puts it.
+final oilTemperatureWidget = HomeWidget.pinned(
+  id: 'oil_temperature',
+  title: 'Oil temperature',
+  icon: const Icon(Icons.oil_barrel),
+  builder: (home) => _OilTemperatureView(
+    temperature: home.ref.watchValue(oilTemperature),
+    shape: home.shape,
   ),
-];
-```
+);
 
-```dart title="lib/main.dart"
-import 'package:flutter/material.dart';
-import 'package:smartify_os_core/backgrounds.dart';
-import 'package:smartify_os_core/core.dart';
-import 'package:smartify_os_core/home_widgets.dart';
-import 'package:my_car_app/home_widgets.dart';
+/// The number, with a label under it unless the box is a thin strip.
+class _OilTemperatureView extends StatelessWidget {
+  final double? temperature;
+  final HomeWidgetShape shape;
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await SmartifyOs().init(
-    homeWidgets: HomeWidgetsConfig(widgets: myHomeWidgets),
-  );
-  runApp(
-    SmartifyOsApp(
-      // See Backgrounds for the other options.
-      background: ImageBackground(
-        imageAssetPath: 'packages/smartify_os_core/assets/background.png',
+  const _OilTemperatureView({required this.temperature, required this.shape});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = context.smartifyOsText;
+    final value = temperature == null ? '--' : '${temperature!.round()} °C';
+
+    if (shape == HomeWidgetShape.strip) {
+      return Center(child: Text('Oil $value', style: text.title));
+    }
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value, style: text.display),
+          Text('Oil temperature', style: text.dim(text.small)),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 ```
 
-Whatever in your own code actually knows when a door opens (reading a sensor, say) just has to
-set `ref.read(doorsOpenProvider.notifier).state = true;`, from wherever that happens, the card
-takes care of the rest.
+## Handing both to SmartifyOS
+
+```dart title="lib/main.dart"
+import 'package:flutter/material.dart';
+import 'package:smartify_os_my_car_app/home_widgets/door_open_widget.dart';
+import 'package:smartify_os_my_car_app/home_widgets/oil_temperature_widget.dart';
+import 'package:smartify_os_core/core.dart';
+import 'package:smartify_os_core/home_widgets.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SmartifyOs().init(
+    // Your own widgets and cards on the home screen.
+    homeWidgets: HomeWidgetsConfig(
+      widgets: [doorOpenWidget, oilTemperatureWidget],
+    ),
+  );
+
+  runApp(const SmartifyOsApp());
+}
+```
+
+The card now looks after itself: `doorOpen.value = true;` from anywhere puts it on screen, and
+`false` takes it away. The gauge waits until the driver holds an area of the home screen and adds
+it, or until a layout of yours names it for one of its areas (see
+[Making a Layout](../layouts/making-a-layout.md)).

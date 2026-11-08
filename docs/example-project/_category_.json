@@ -1,8 +1,8 @@
 {
   "label": "Example Project",
-  "position": 19,
+  "position": 36,
   "link": {
     "type": "generated-index",
-    "description": "Example Project"
+    "description": "A pretend car with one of everything SmartifyOS lets you add, to learn from and copy."
   }
 }
