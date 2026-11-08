@@ -58,6 +58,25 @@ const config = {
         ],
     ],
 
+    themes: [
+        [
+            "@easyops-cn/docusaurus-search-local",
+            /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
+            ({
+                hashed: true,
+                // The blog only holds Docusaurus's sample posts.
+                indexBlog: false,
+                docsRouteBasePath: "/docs",
+                // Marks the words searched for on the page a result opens.
+                highlightSearchTermsOnTargetPage: true,
+                searchResultLimits: 10,
+                searchResultContextMaxLength: 60,
+                // Adds a page with every result, for when the dropdown is not enough.
+                explicitSearchResultPath: true,
+            }),
+        ],
+    ],
+
     themeConfig:
         /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
         ({
